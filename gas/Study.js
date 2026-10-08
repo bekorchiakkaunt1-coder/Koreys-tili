@@ -49,6 +49,8 @@ function apiBootstrap_() {
     const o = strip_(c);
     const n = notes[c.note_id];
     NOTE_FIELDS.forEach(function (f) { o[f] = n[f]; });
+    o.gloss_en = tidyGloss_(o.gloss_en);
+    o.gloss_ru = tidyGloss_(o.gloss_ru);
     return o;
   };
   const inboxNew = Repo.column('inbox', 'status').filter(function (s) { return s === 'new'; }).length;

@@ -55,16 +55,20 @@ const Krdict = (function () {
     return { total: Number(root.getChildText('total')) || 0, items: items };
   }
 
-  /** Short gloss from the first two senses: translated headword, else the start of the translated definition. */
+  /**
+   * Short gloss: translated headwords of the first three senses; only if none has one, the start
+   * of the first translated definition. Tokens are de-duplicated (see tidyGloss_).
+   */
   function gloss(item) {
-    const out = [];
-    item.senses.slice(0, 2).forEach(function (s) {
+    const words = [];
+    item.senses.slice(0, 3).forEach(function (s) {
       const t = s.translations[0];
-      if (!t) return;
-      const g = t.word || (t.dfn.length > 60 ? t.dfn.slice(0, 57) + '…' : t.dfn);
-      if (g && out.indexOf(g) < 0) out.push(g);
+      if (t && t.word) words.push(t.word);
     });
-    return out.join('; ');
+    if (words.length) return tidyGloss_(words.join('; '));
+    const first = item.senses[0] && item.senses[0].translations[0];
+    const dfn = first ? first.dfn : '';
+    return dfn.length > 60 ? dfn.slice(0, 57) + '…' : dfn;
   }
 
   function fetchPage(key, page, transLang) {
@@ -177,4 +181,23 @@ function krdictLog_(level, msg, started) {
   console.log('krdict ' + level + ' ' + msg);
   Repo.append('logs', [{ ts: Date.now(), level: level, where: 'krdict.import', msg: msg.slice(0, 2000), ms: ms }]);
   return level + ': ' + msg;
+}
+
+/**
+ * 'go; travel; go; head for' → 'go; travel; head for'. Homograph groups (' / ') stay separate,
+ * each keeps at most 4 tokens; duplicates are dropped across the whole gloss (case-insensitive).
+ */
+function tidyGloss_(text) {
+  const seen = {};
+  return String(text || '').split(' / ').map(function (group) {
+    const out = [];
+    group.split(';').forEach(function (tok) {
+      const t = tok.trim();
+      const k = t.toLowerCase();
+      if (!t || seen[k] || out.length >= 4) return;
+      seen[k] = true;
+      out.push(t);
+    });
+    return out.join('; ');
+  }).filter(Boolean).join(' / ');
 }

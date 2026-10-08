@@ -153,5 +153,11 @@ function testKrdict_(t) {
   t.eq('krdict: EN + RU glosses', [merged[0].gloss_en, merged[0].gloss_ru, merged[1].gloss_en, merged[1].krdict_code], ['apple', 'яблоко', 'eye / snow', '102,103']);
   t.eq('krdict: long definition shortened', merged[2].gloss_en.length <= 58 && /…$/.test(merged[2].gloss_en), true);
   t.eq('krdict: pronunciation kept', merged[2].pron_dict, '궁물');
+  t.eq('krdict: tidy duplicates', tidyGloss_('go; travel; go; head for; be bound for'), 'go; travel; head for; be bound for');
+  t.eq('krdict: tidy keeps homograph groups', tidyGloss_('душа; характер; сердце; душа / Душа; рука'), 'душа; характер; сердце / рука');
+  t.eq('krdict: tidy empty', tidyGloss_(''), '');
+  t.eq('krdict: headword from a later sense beats a definition', Krdict.gloss({ senses: [
+    { translations: [{ word: '', dfn: 'A pronoun used to indicate the listener when he or she is the same age' }] },
+    { translations: [{ word: 'you', dfn: '' }] }] }), 'you');
   t.eq('krdict: query encoding', Krdict.query({ q: '.', level: 'level1', trans_lang: 10 }), 'q=.&level=level1&trans_lang=10');
 }
