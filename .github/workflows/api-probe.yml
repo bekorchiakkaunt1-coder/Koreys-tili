@@ -1,0 +1,26 @@
+# Manual diagnostics: calls the public Apps Script /exec URL the way the Mini App does
+# (text/plain POST, Origin = Pages) and prints every redirect hop's status + CORS headers.
+# Sends no secrets: initData is empty, so the expected body is {"ok":false,"error":{"code":"AUTH_INVALID"}}.
+name: api-probe
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: GET doGet
+        run: curl -sS -L -o - -w '\nHTTP %{http_code} after %{num_redirects} redirects\n' "$API" | head -c 400
+        env:
+          API: https://script.google.com/macros/s/AKfycbzX20CH14w-SFPFlQteIsoIbsead6Jv6_EkFdSiBe2uwa5Y_Uxl0q8J45O3hF-DcFE0Fg/exec
+      - name: POST api ping (no initData)
+        run: |
+          curl -sS -L -D - -o body.txt \
+            -H 'Origin: https://bekorchiakkaunt1-coder.github.io' \
+            -H 'Content-Type: text/plain;charset=UTF-8' \
+            --data '{"action":"ping","initData":"","reqId":"probe"}' \
+            -w '\nHTTP %{http_code} after %{num_redirects} redirects, %{time_total}s\n' \
+            "$API?route=api" | grep -iE '^(HTTP|location|access-control|content-type)' || true
+          echo '--- body ---'; head -c 600 body.txt; echo
+        env:
+          API: https://script.google.com/macros/s/AKfycbzX20CH14w-SFPFlQteIsoIbsead6Jv6_EkFdSiBe2uwa5Y_Uxl0q8J45O3hF-DcFE0Fg/exec
