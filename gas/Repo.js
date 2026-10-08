@@ -126,7 +126,13 @@ const Repo = (function () {
     return null;
   }
 
-  return { ss: ss, sheet: sheet, readAll: readAll, column: column, append: append, update: update, writeRows: writeRows, findBy: findBy };
+  /** Drops per-execution caches (each Apps Script execution starts fresh; tests reuse one context). */
+  function reset() {
+    ss_ = null;
+    [sheets_, heads_, tables_].forEach(function (c) { Object.keys(c).forEach(function (k) { delete c[k]; }); });
+  }
+
+  return { reset: reset, ss: ss, sheet: sheet, readAll: readAll, column: column, append: append, update: update, writeRows: writeRows, findBy: findBy };
 })();
 
 /** Short sortable id: prefix + base36 ms + 4 random chars. */

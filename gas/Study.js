@@ -3,7 +3,7 @@
  * Grading happens in the Mini App; the server re-applies every review with the same
  * Srs adapter (same bundle, same fuzz seed) and persists the result (D-07).
  */
-const NOTE_FIELDS = ['ko', 'meaning_uz', 'gloss_en', 'pos', 'hanja', 'pron_dict', 'example_ko', 'example_uz', 'audio_url'];
+const NOTE_FIELDS = ['ko', 'meaning_uz', 'gloss_en', 'gloss_ru', 'pos', 'hanja', 'pron_dict', 'example_ko', 'example_uz', 'audio_url'];
 const MAX_DUE_BATCH = 500;
 
 /** @return {{cfg:Object, srs:Object}} */
@@ -41,6 +41,9 @@ function apiBootstrap_() {
     else if (Number(c.due) < nextDay) due.push(c);
   });
   due.sort(function (a, b) { return Number(a.due) - Number(b.due); });
+  // §6.3 order: my own words (Ibrat, captures, manual) first, then krdict 초급 by popularity (row order).
+  const rank = function (c) { return notes[c.note_id].source === 'krdict' ? 1 : 0; };
+  fresh.sort(function (a, b) { return rank(a) - rank(b) || a._row - b._row; });
 
   const withNote = function (c) {
     const o = strip_(c);

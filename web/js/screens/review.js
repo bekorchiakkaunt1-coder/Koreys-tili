@@ -26,6 +26,7 @@ var ReviewScreen = {
           '<div class="ko" lang="ko">' + esc(card.ko) + '</div>' +
           '<div id="back" hidden>' +
             '<div class="meaning">' + esc(card.meaning_uz || card.gloss_en || '') + '</div>' +
+            glossLine(card) +
             (card.example_ko ? '<div class="example" lang="ko">' + esc(card.example_ko) + '</div>' : '') +
             (card.example_uz ? '<div class="example muted small">' + esc(card.example_uz) + '</div>' : '') +
           '</div>' +
@@ -53,6 +54,18 @@ var ReviewScreen = {
     return function cleanup() { clearTimeout(timer); };
   },
 };
+
+/** EN pivot (if Uzbek is primary) + RU + dictionary pronunciation and POS, from krdict (D-27). */
+function glossLine(card) {
+  var parts = [];
+  if (card.meaning_uz && card.gloss_en) parts.push(card.gloss_en);
+  if (card.gloss_ru) parts.push(card.gloss_ru);
+  var meta = [];
+  if (card.pron_dict && card.pron_dict !== card.ko) meta.push('[' + card.pron_dict + ']');
+  if (card.pos) meta.push(card.pos);
+  return (parts.length ? '<div class="muted small">' + esc(parts.join(' · ')) + '</div>' : '') +
+    (meta.length ? '<div class="muted small" lang="ko">' + esc(meta.join(' ')) + '</div>' : '');
+}
 
 function esc(s) {
   return String(s === undefined || s === null ? '' : s).replace(/[&<>"]/g, function (c) {

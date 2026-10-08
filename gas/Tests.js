@@ -18,6 +18,7 @@ function runAllTests() {
   testParseAdd_(t);
   testNewCard_(t);
   testSrs_(t);
+  testKrdict_(t);
   return t.done();
 }
 
@@ -112,4 +113,45 @@ function testSrs_(t) {
   const a = srs.apply(fresh, 1, last);
   t.eq('srs: log fields', [a.log.rating, a.log.state_before, a.log.offset_h, 'elapsed_days' in a.row], [1, 0, 4, false]);
   t.eq('srs: labels', [60000, 600000, 3 * H, 48 * H, 45 * 24 * H].map(Srs.label), ['1 daq', '10 daq', '3 soat', '2 kun', '1.5 oy']);
+}
+
+/**
+ * krdict response fixtures. Element names follow krdict.py 3.0.2 (secondary source); values
+ * are made up for parsing tests only — they are not dictionary data and never enter the DB.
+ */
+const KRDICT_FIXTURE = {
+  en: '<?xml version="1.0" encoding="UTF-8"?><channel><title>t</title><total>3</total><start>1</start><num>100</num>' +
+    '<item><target_code>101</target_code><word>사과</word><sup_no>0</sup_no><pronunciation>사과</pronunciation>' +
+    '<word_grade>초급</word_grade><pos>명사</pos><sense><sense_order>1</sense_order><definition>과일.</definition>' +
+    '<translation><trans_word>apple</trans_word><trans_dfn>A fruit.</trans_dfn></translation></sense></item>' +
+    '<item><target_code>102</target_code><word>눈</word><sup_no>1</sup_no><pronunciation>눈</pronunciation>' +
+    '<word_grade>초급</word_grade><pos>명사</pos><sense><definition>보는 기관.</definition>' +
+    '<translation><trans_word>eye</trans_word><trans_dfn>An organ.</trans_dfn></translation></sense></item>' +
+    '<item><target_code>103</target_code><word>눈</word><sup_no>2</sup_no><pronunciation>눈ː</pronunciation>' +
+    '<word_grade>초급</word_grade><pos>명사</pos><sense><definition>하얀 것.</definition>' +
+    '<translation><trans_word>snow</trans_word><trans_dfn>White &amp; cold.</trans_dfn></translation></sense></item>' +
+    '<item><target_code>104</target_code><word>-님</word><sup_no>0</sup_no><word_grade>초급</word_grade><pos>접사</pos>' +
+    '<sense><definition>높임.</definition></sense></item>' +
+    '<item><target_code>105</target_code><word>국물</word><sup_no>0</sup_no><pronunciation>궁물</pronunciation>' +
+    '<word_grade>초급</word_grade><pos>명사</pos><sense><definition>물.</definition>' +
+    '<translation><trans_dfn><![CDATA[Liquid in which food has been boiled for a long time and seasoned]]></trans_dfn></translation></sense></item>' +
+    '</channel>',
+  ru: '<channel><total>3</total><item><target_code>101</target_code><word>사과</word><sense><definition>과일.</definition>' +
+    '<translation><trans_word>яблоко</trans_word><trans_dfn>Фрукт.</trans_dfn></translation></sense></item></channel>',
+  error: '<?xml version="1.0" encoding="UTF-8"?><error><error_code>020</error_code><message>등록되지 않은 인증키입니다.</message></error>',
+};
+
+function testKrdict_(t) {
+  const en = Krdict.parse(KRDICT_FIXTURE.en);
+  t.eq('krdict: items parsed', en.items.length, 5);
+  t.eq('krdict: fields', [en.total, en.items[0].target_code, en.items[0].word, en.items[0].pos, en.items[0].senses[0].translations[0].word],
+    [3, '101', '사과', '명사', 'apple']);
+  t.eq('krdict: entity decoded', en.items[2].senses[0].translations[0].dfn, 'White & cold.');
+  t.eq('krdict: error response', Krdict.parse(KRDICT_FIXTURE.error).error.code, '020');
+  const merged = krdictMerge_(en.items, Krdict.parse(KRDICT_FIXTURE.ru).items);
+  t.eq('krdict: affix skipped, homographs joined', merged.map(function (m) { return m.ko; }), ['사과', '눈', '국물']);
+  t.eq('krdict: EN + RU glosses', [merged[0].gloss_en, merged[0].gloss_ru, merged[1].gloss_en, merged[1].krdict_code], ['apple', 'яблоко', 'eye / snow', '102,103']);
+  t.eq('krdict: long definition shortened', merged[2].gloss_en.length <= 58 && /…$/.test(merged[2].gloss_en), true);
+  t.eq('krdict: pronunciation kept', merged[2].pron_dict, '궁물');
+  t.eq('krdict: query encoding', Krdict.query({ q: '.', level: 'level1', trans_lang: 10 }), 'q=.&level=level1&trans_lang=10');
 }

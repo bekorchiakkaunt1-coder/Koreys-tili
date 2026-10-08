@@ -5,7 +5,7 @@
 - **Target:** 110th TOPIK PBT, 2027-01-10, TOPIK I, 1급 floor / 2급 stretch (D-20) · T−97 days
 - **Key dates:** P1+P2 start 2026-10-12 · freeze / P3 start 2026-12-06 · no new cards 2026-12-27 · taper 2027-01-04
 - **Registration (110th):** window UNVERIFIED. January rounds open ≈ 4 weeks before (104th: 2025-12-09 → 12-15 for 2026-01-11) → expect ≈ early–mid Dec 2026. Other rounds open ≈ 10 weeks before (103rd/108th/109th). 103rd used regional staggered start days (지역별 분할 접수) → check Seoul's day. Check topik.go.kr as soon as the 110th notice appears.
-- **Deployed:** GAS project `koreys_tili` (scriptId in `.clasp.json`), prod deployment `AKfycbzX20CH…Fg` @5 (2026-10-09, clasp 3.4.1); Pages via Actions from `main` (`.github/workflows/pages.yml`)
+- **Deployed:** GAS project `koreys_tili` (scriptId in `.clasp.json`), prod deployment `AKfycbzX20CH…Fg` @6 (2026-10-09, clasp 3.4.1); Pages via Actions from `main` (`.github/workflows/pages.yml`)
 
 ## Done
 - Master prompt reviewed; contradictions resolved in D-21 … D-25.
@@ -36,7 +36,8 @@
 
 ## Next
 1. User: after the Pages run is green → run `setMenuButton()` in the editor → open the Mini App from the bot menu; review the 사과 card; report latency line + anything odd.
-2. Remaining Phase 1: Notes list/search screen; krdict import job (first 500 초급 words; key → Script Property `KRDICT_KEY`); measure real latency p50/p95; 7 real days with ≥ 5 active.
+2. User: editor → `runAllTests` (XmlService in real GAS) → `importKrdict` → Claude reads `logs` and the notes tab.
+3. Remaining Phase 1: Notes list/search screen; measure real latency p50/p95; 7 real days with ≥ 5 active.
 3. User: krdict Open API key application; 35th TOPIK I diagnostic (later, per user).
 
 ## Spikes pending (need the user's accounts / phone)
@@ -47,13 +48,15 @@
 - [ ] Fuzz determinism GAS ↔ WebView (same bundle; Node ✓ incl. client==server sim; real devices pending).
 - [ ] iOS: `<audio>` MP3 playback and autoplay-without-gesture behaviour (D-26).
 - [ ] Voice capture: `file_id` stored ✓ (2026-10-09); replay via sendVoice pending.
-- [ ] krdict: key, licence version + audio terms, one `search?advanced=y&level=level1` parsed with `XmlService`.
+- [ ] krdict: key ✓ (2026-10-09, in Script Properties); licence version + audio terms pending; first live `importKrdict()` run pending.
 - [ ] `LanguageApp.translate('사과','ko','uz')`.
 - [ ] Apps Script round-trip latency p50/p95 from the Mini App.
 - [ ] DeviceStorage available; Uzbek ʻ renders in the chosen font.
 - [ ] Before Phase 2: 110th registration window; points per item from an official key.
 
 - 2026-10-09: Mini App live on iPhone: 사과 reviewed (Easy → Review, 8 d), review_log + daily_stats correct. Measured: round trip p50 5.1 s / p95 7.9 s (n=5); server handler 1.4–2.5 s (from logs). → @5: Repo reads each tab in one `getDataRange()` call with per-execution caches, block writes, no sheet write on the response path (server `ms` returned instead); Mini App offline-first: cached boot renders instantly, background flush + bootstrap, Home after review needs no network (smoke with 2.5 s API: first open 3.0 s, back to Home 48 ms, reopen 21 ms). Config Date coercion fixed (exam_date showed NaN).
+
+- 2026-10-09: krdict import (`gas/Krdict.js`, run `importKrdict()` from the editor; key = Script Property `KRDICT_KEY`). Params from krdict.py 3.0.2 (secondary; official guide unreachable from build env): advanced=y, level=level1, type1=word, sort=popular, num=100, start=page, trans_lang 1 (EN) + 10 (RU). No empty-query search exists → workaround q='.' with target=2 (definitions). One note per headword (homographs joined), affixes/endings skipped, existing notes enriched (Uzbek kept), krdict words ordered after own words. Self-check: 0 items or API error → ERROR row in `logs` (key never logged). Tested with XML fixtures (Node shim) + sim; **UNVERIFIED against the live API** until the first run.
 
 ## Open bugs
 - B-01 fixed (2026-10-09): Mini App showed NETWORK "Load failed": `api.js` posted to `/exec` without `?route=api` → Router's empty 200 has no CORS header. Reproduced in WebKit + Chromium via `api-probe` workflow (live Pages vs real API); fixed + guard test in `tools/test-web.mjs`. Also from this: api branch always answers JSON, INFO row per authenticated call, error detail + retry in the UI.

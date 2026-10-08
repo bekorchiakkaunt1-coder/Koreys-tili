@@ -5,6 +5,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { createHmac, randomUUID } from 'node:crypto';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
+import { XmlService } from './xml-shim.mjs';
 
 const toBuf = (x) => (typeof x === 'string' ? Buffer.from(x, 'utf8') : Buffer.from(x.map((b) => b & 0xff)));
 const toSigned = (buf) => Array.from(buf, (b) => (b > 127 ? b - 256 : b));
@@ -47,10 +48,13 @@ class FakeSS {
 }
 
 const ss = new FakeSS();
+const krdictCalls = [];
+let krdictMode = 'ok';
 const props = {};
 const sent = [];
 const cache = {};
 const globals = {
+  XmlService,
   console: { log() {}, warn() {}, error: (...a) => console.error(...a) },
   Utilities: {
     computeHmacSha256Signature: (v, k) => toSigned(createHmac('sha256', toBuf(k)).update(toBuf(v)).digest()),
@@ -66,6 +70,12 @@ const globals = {
   HtmlService: { createHtmlOutput: (s) => s },
   UrlFetchApp: {
     fetch: (url, opt) => {
+      if (url.startsWith('https://krdict.korean.go.kr/')) {
+        krdictCalls.push(url);
+        const body = krdictMode === 'error' ? run('KRDICT_FIXTURE').error
+          : /[?&]start=1&/.test(url) ? (/trans_lang=10/.test(url) ? run('KRDICT_FIXTURE').ru : run('KRDICT_FIXTURE').en) : '<channel><total>3</total></channel>';
+        return { getContentText: () => body, getResponseCode: () => 200 };
+      }
       sent.push({ method: url.split('/').pop(), payload: JSON.parse(opt.payload) });
       return { getContentText: () => '{"ok":true,"result":{}}', getResponseCode: () => 200 };
     },
@@ -74,7 +84,7 @@ const globals = {
 const ctx = vm.createContext(globals);
 const dir = new URL('../gas/', import.meta.url);
 for (const f of readdirSync(dir).filter((f) => f.endsWith('.js')).sort()) vm.runInContext(readFileSync(new URL(f, dir), 'utf8'), ctx, { filename: f });
-const run = (code) => vm.runInContext(code, ctx);
+const run = (code) => { vm.runInContext('Repo.reset()', ctx); return vm.runInContext(code, ctx); }; // one call = one execution
 
 run('setup()');
 run('setup()'); // idempotent
@@ -214,4 +224,34 @@ assert.equal(api('reviews.submit', { reviews: [{ req_id: 'z', card_id: 'nope', r
 assert.equal(api('nope').error.code, 'BAD_REQUEST');
 assert.equal(api('notes.add', { text: 'salom' }).error.code, 'BAD_REQUEST');
 
-console.log('sim ok: setup idempotent, empty 200, dedupe, add, capture, callback, voice, stranger, api auth, bootstrap quota, 50 offline reviews idempotent, client=server');
+// --- krdict import ---
+props.KRDICT_KEY = 'SECRET-KRDICT-KEY';
+krdictMode = 'error';
+assert.match(run('importKrdict()'), /^ERROR: page 1 EN: 020/);
+krdictMode = 'ok';
+const notesBefore = tab('notes').getLastRow();
+const res1 = run('importKrdict()');
+assert.match(res1, /^INFO: pages=1 fetched=3 added=2 enriched=1/, res1);
+assert.ok(krdictCalls.every((u) => /[?&]q=\.&advanced=y&target=2&method=include&type1=word&level=level1&sort=popular/.test(u)), krdictCalls[0]);
+assert.equal(tab('notes').getLastRow(), notesBefore + 2, '눈 + 국물 added');
+const noteRows = tab('notes').grid.slice(1, tab('notes').getLastRow());
+const H = tab('notes').grid[0];
+const col = (row, name) => row[H.indexOf(name)];
+const apple = noteRows.find((r) => col(r, 'ko') === '사과');
+assert.deepEqual([col(apple, 'source'), col(apple, 'meaning_uz'), col(apple, 'gloss_en'), col(apple, 'gloss_ru'), col(apple, 'krdict_code')],
+  ['manual', 'olma', 'apple', 'яблоко', '101'], 'manual note enriched, Uzbek kept');
+const snow = noteRows.find((r) => col(r, 'ko') === '눈');
+assert.deepEqual([col(snow, 'source'), col(snow, 'gloss_en'), col(snow, 'meaning_uz_status'), col(snow, 'topik_band')], ['krdict', 'eye / snow', 'none', 'I']);
+assert.equal(run('importKrdict()').match(/added=(\d+)/)[1], '0', 're-run adds nothing');
+const logsText = tab('logs').grid.map((r) => r.join('|')).join('\n');
+assert.ok(logsText.includes('krdict.import') && !logsText.includes('SECRET-KRDICT-KEY'), 'logged without the key');
+
+// New-card order: own words before krdict
+const cfgNew = tab('config').grid.findIndex((r) => r[0] === 'new_per_day');
+tab('config').grid[cfgNew][1] = 500;
+delete cache.config;
+const fresh = api('bootstrap').data.fresh.map((c) => c.ko);
+assert.deepEqual(fresh.slice(-2), ['눈', '국물'], 'krdict words come last');
+assert.ok(fresh[0].startsWith('단어'), 'own words first');
+
+console.log('sim ok: setup idempotent, empty 200, dedupe, add, capture, callback, voice, stranger, api auth, bootstrap quota, 50 offline reviews idempotent, client=server, krdict import (error path, enrich, dedupe, order, no key in logs)');
