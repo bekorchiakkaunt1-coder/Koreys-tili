@@ -54,7 +54,7 @@
 - [ ] Before Phase 2: 110th registration window; points per item from an official key.
 
 ## Open bugs
-- B-01 (2026-10-09): Mini App on iPhone shows NETWORK error on `bootstrap`; `logs` sheet empty. @4 adds always-JSON api branch, INFO row per authenticated api call, and error detail + retry in the Mini App. Next: user retries; if still failing, check editor → Executions for the doPost entry.
+- B-01 fixed (2026-10-09): Mini App showed NETWORK "Load failed": `api.js` posted to `/exec` without `?route=api` → Router's empty 200 has no CORS header. Reproduced in WebKit + Chromium via `api-probe` workflow (live Pages vs real API); fixed + guard test in `tools/test-web.mjs`. Also from this: api branch always answers JSON, INFO row per authenticated call, error detail + retry in the UI.
 
 ## Time log
 - Build min this week: 0 · Study min this week: —

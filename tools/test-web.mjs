@@ -13,6 +13,9 @@ const files = [
   ...readdirSync(new URL('web/js/', root)).filter((f) => f.endsWith('.js')).map((f) => 'web/js/' + f),
   ...readdirSync(new URL('web/js/screens/', root)).map((f) => 'web/js/screens/' + f),
 ];
+// The Router answers JSON (with CORS headers) only on ?route=api; any other URL gets an empty 200 without them.
+assert.match(read('web/js/api.js'), /fetch\(CONFIG\.API_URL \+ '\?route=api'/, 'Mini App must call ?route=api');
+assert.equal(read('web/js/config.js').match(/API_URL: '([^']+)'/)[1], read('gas/Config.js').match(/DEFAULT_WEBAPP_URL = '([^']+)'/)[1], 'API_URL == DEFAULT_WEBAPP_URL');
 for (const f of files) execFileSync(process.execPath, ['--check', new URL(f, root).pathname]);
 
 const ctx = vm.createContext({});

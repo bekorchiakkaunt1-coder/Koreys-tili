@@ -6,7 +6,7 @@ var Api = (function () {
     var tg = window.Telegram && Telegram.WebApp;
     var body = JSON.stringify({ action: action, initData: tg ? tg.initData : '', reqId: uuid(), payload: payload || null });
     var t0 = performance.now();
-    return fetch(CONFIG.API_URL, { method: 'POST', body: body })
+    return fetch(CONFIG.API_URL + '?route=api', { method: 'POST', body: body })
       .then(function (res) {
         return res.json().catch(function () { throw apiError('NETWORK', 'HTTP ' + res.status + ': not JSON'); });
       }, function (err) { throw apiError('NETWORK', String(err && err.message || err)); })
