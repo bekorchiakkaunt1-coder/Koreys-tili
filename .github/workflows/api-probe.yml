@@ -24,3 +24,12 @@ jobs:
           echo '--- body ---'; head -c 600 body.txt; echo
         env:
           API: https://script.google.com/macros/s/AKfycbzX20CH14w-SFPFlQteIsoIbsead6Jv6_EkFdSiBe2uwa5Y_Uxl0q8J45O3hF-DcFE0Fg/exec
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Live Mini App in WebKit + Chromium
+        run: |
+          npm i --no-save playwright@1.56.1
+          npx playwright install --with-deps webkit chromium
+          node tools/probe-browser.mjs
