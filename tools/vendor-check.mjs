@@ -1,9 +1,9 @@
-// Loads dist/hv.min.js in a module-less vm sandbox (like Apps Script global scope)
+// Loads gas/00_vendor.js in a module-less vm sandbox (like Apps Script global scope)
 // and re-checks the Phase 0 spike vectors recorded in docs/STATE.md.
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
-const src = readFileSync(new URL('../dist/hv.min.js', import.meta.url), 'utf8');
+const src = readFileSync(new URL('../gas/00_vendor.js', import.meta.url), 'utf8');
 const ctx = vm.createContext({});
 vm.runInContext(src, ctx);
 const HV = ctx.HV;

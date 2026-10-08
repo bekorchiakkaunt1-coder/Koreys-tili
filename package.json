@@ -3,8 +3,10 @@
   "private": true,
   "description": "Hangang Protocol — Telegram bot + Mini App for TOPIK I prep",
   "scripts": {
-    "build:vendor": "esbuild vendor/entry.js --bundle --format=iife --global-name=HV --target=es2019 --minify --legal-comments=inline --outfile=dist/hv.min.js",
-    "check:vendor": "node scripts/vendor-check.mjs"
+    "build:vendor": "node tools/build-vendor.mjs",
+    "check:vendor": "node tools/vendor-check.mjs",
+    "test": "node tools/test-gas.mjs && node tools/sim-gas.mjs && node tools/vendor-check.mjs",
+    "sim": "node tools/sim-gas.mjs"
   },
   "devDependencies": {
     "@dongsa/conjugation": "1.0.0",

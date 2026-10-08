@@ -1,7 +1,7 @@
 # STATE.md — Hangang Protocol
 
-- **Last updated:** 2026-10-05 22:00 KST
-- **Current phase:** Phase 0 (decisions + target + spikes) — decisions done, local spikes done, device/account spikes pending
+- **Last updated:** 2026-10-08 KST
+- **Current phase:** Phase 1 build (study loop MVP) — server foundation written + tested locally; not deployed
 - **Target:** 110th TOPIK PBT, 2027-01-10, TOPIK I, 1급 floor / 2급 stretch (D-20) · T−97 days
 - **Key dates:** P1+P2 start 2026-10-12 · freeze / P3 start 2026-12-06 · no new cards 2026-12-27 · taper 2027-01-04
 - **Registration (110th):** window UNVERIFIED. January rounds open ≈ 4 weeks before (104th: 2025-12-09 → 12-15 for 2026-01-11) → expect ≈ early–mid Dec 2026. Other rounds open ≈ 10 weeks before (103rd/108th/109th). 103rd used regional staggered start days (지역별 분할 접수) → check Seoul's day. Check topik.go.kr as soon as the 110th notice appears.
@@ -9,7 +9,10 @@
 
 ## Done
 - Master prompt reviewed; contradictions resolved in D-21 … D-25.
-- 2026-10-08: repo set up; vendor bundle reproducible (`npm run build:vendor`, 89.8 KB min) and spike vectors re-checked (`npm run check:vendor`) ✓.
+- 2026-10-08: repo in §14 layout (`gas/`, `web/`, `tools/`); vendor bundle reproducible (`npm run build:vendor`) → byte-identical `gas/00_vendor.js` + `web/js/vendor/korean-vendor.1.js`; vectors re-checked ✓.
+- 2026-10-08: Phase 1 server foundation (`gas/`): Router (tg → empty return, api → JSON), durable `update_id` dedupe, Auth (initData), Telegram, Bot (`/start`, bulk add `사과 - olma`, text/voice capture → `inbox` + situation keyboard), Repo (header-mapped, batch writes), Setup (8 Phase-1 tabs, trimmed, config defaults, WEBHOOK_KEY, setWebhook, setMenuButton), Api (`ping`), Tests.
+  - `npm test` ✓: initData vector valid with `signature` in dcs, signature-excluded/tampered/wrong-token fail, expired → AUTH_EXPIRED, other user → FORBIDDEN; dedupe; add parser; end-to-end webhook sim with fakes (setup idempotent, duplicate update handled once, stranger ignored).
+- Users' answers 2026-10-08: bot already exists (BotFather); Pages = this repo (public, Pages enabled); Apps Script project to be created by Claude via clasp; diagnostic later.
 - initData test vector reproduced (Python HMAC): valid hash `b45182…` with `signature` included; excluding it gives `6974adf3…` → must fail. ✓ (not yet in GAS)
 - Local spike, Node 22 module-less `vm` sandbox, bundle built with esbuild (`--format=iife --global-name=HV --target=es2019 --minify --legal-comments=inline`):
   - Bundle size: **89.8 KB min / 26.6 KB gzip** (ts-fsrs 5.4.2 + es-hangul 2.4.0 + @dongsa/conjugation 1.0.0 incl. pronunciation).
@@ -27,9 +30,9 @@
 - G1 study loop: diagnostic paper (35th TOPIK I) + Ibrat redo + vocab list in Notes.
 
 ## Next
-1. User: download 35th TOPIK I (PDF + MP3 + key) from topik.go.kr → private Drive; do the timed diagnostic (wake 08:45, 09:15–10:55) and hand-score it.
-2. User account prep (≈ 20 min, counts as build time): BotFather bot (+ note token), empty Apps Script project, GitHub repo for Pages, krdict Open API key application (may need approval time — do first).
-3. Phase 1 build session (after MVD): Setup, Router/Auth/Telegram, webhook, vendor bundle, Srs adapter, Review/Add screens.
+1. Deploy: user enables Apps Script API (script.google.com/home/usersettings) → `clasp login --no-localhost` from the session → clasp create/push/deployment → user runs `setup()` once in the editor (consent), sets `BOT_TOKEN`, `WEBAPP_URL` → `setWebhook()`, `setMenuButton()` → `/start` → `OWNER_ID`.
+2. Phase 1 next build steps: `Srs.js` adapter (params, 05:00 offset, fuzz seed) + `bootstrap` / `reviews.submit` (idempotent `req_id`); Mini App (Pages via Actions): Review (4 buttons + previews), Add/Notes, DeviceStorage queue; krdict import job last.
+3. User: krdict Open API key application; 35th TOPIK I diagnostic (later, per user).
 
 ## Spikes pending (need the user's accounts / phone)
 - [ ] Webhook empty 200; duplicate `update_id` handled once; `getWebhookInfo` clean.
