@@ -42,7 +42,7 @@
 ## Spikes pending (need the user's accounts / phone)
 - [x] Webhook empty 200; `getWebhookInfo` clean (2026-10-09). Duplicate `update_id` covered by sim only.
 - [ ] initData vector inside GAS; then real initData via menu button / Main Mini App.
-- [ ] text/plain POST from the Pages origin returns JSON through the redirect.
+- [x] text/plain POST from the Pages origin returns JSON through the redirect (2026-10-09, `api-probe`: live Pages in WebKit 2.1 s / Chromium 1.6 s; 302 + 200 both `access-control-allow-origin: *`). One earlier Chromium call took > 30 s (cold start?) → watch real p95.
 - [x] Bundle loads in real Apps Script: 92 KB push accepted, `runAllTests()` in editor 24/24 ✓ (2026-10-09). iOS Telegram WebView part still pending.
 - [ ] Fuzz determinism GAS ↔ WebView (same bundle; Node ✓ incl. client==server sim; real devices pending).
 - [ ] iOS: `<audio>` MP3 playback and autoplay-without-gesture behaviour (D-26).
