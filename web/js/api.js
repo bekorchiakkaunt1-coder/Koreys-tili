@@ -7,7 +7,9 @@ var Api = (function () {
     var body = JSON.stringify({ action: action, initData: tg ? tg.initData : '', reqId: uuid(), payload: payload || null });
     var t0 = performance.now();
     return fetch(CONFIG.API_URL, { method: 'POST', body: body })
-      .then(function (res) { return res.json(); }, function () { throw apiError('NETWORK'); })
+      .then(function (res) {
+        return res.json().catch(function () { throw apiError('NETWORK', 'HTTP ' + res.status + ': not JSON'); });
+      }, function (err) { throw apiError('NETWORK', String(err && err.message || err)); })
       .then(function (json) {
         recordLatency(action, Math.round(performance.now() - t0));
         if (!json.ok) throw apiError(json.error && json.error.code, json.error && json.error.message);
@@ -18,6 +20,7 @@ var Api = (function () {
   function apiError(code, message) {
     var e = new Error(message || code || 'error');
     e.code = code || 'NETWORK';
+    e.detail = message || '';
     return e;
   }
 

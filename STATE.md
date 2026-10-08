@@ -5,7 +5,7 @@
 - **Target:** 110th TOPIK PBT, 2027-01-10, TOPIK I, 1급 floor / 2급 stretch (D-20) · T−97 days
 - **Key dates:** P1+P2 start 2026-10-12 · freeze / P3 start 2026-12-06 · no new cards 2026-12-27 · taper 2027-01-04
 - **Registration (110th):** window UNVERIFIED. January rounds open ≈ 4 weeks before (104th: 2025-12-09 → 12-15 for 2026-01-11) → expect ≈ early–mid Dec 2026. Other rounds open ≈ 10 weeks before (103rd/108th/109th). 103rd used regional staggered start days (지역별 분할 접수) → check Seoul's day. Check topik.go.kr as soon as the 110th notice appears.
-- **Deployed:** GAS project `koreys_tili` (scriptId in `.clasp.json`), prod deployment `AKfycbzX20CH…Fg` @3 (2026-10-09, clasp 3.4.1); Pages via Actions from `main` (`.github/workflows/pages.yml`)
+- **Deployed:** GAS project `koreys_tili` (scriptId in `.clasp.json`), prod deployment `AKfycbzX20CH…Fg` @4 (2026-10-09, clasp 3.4.1); Pages via Actions from `main` (`.github/workflows/pages.yml`)
 
 ## Done
 - Master prompt reviewed; contradictions resolved in D-21 … D-25.
@@ -54,7 +54,7 @@
 - [ ] Before Phase 2: 110th registration window; points per item from an official key.
 
 ## Open bugs
-- none
+- B-01 (2026-10-09): Mini App on iPhone shows NETWORK error on `bootstrap`; `logs` sheet empty. @4 adds always-JSON api branch, INFO row per authenticated api call, and error detail + retry in the Mini App. Next: user retries; if still failing, check editor → Executions for the doPost entry.
 
 ## Time log
 - Build min this week: 0 · Study min this week: —

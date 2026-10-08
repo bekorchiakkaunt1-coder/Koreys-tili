@@ -135,7 +135,9 @@ assert.equal(sent.length, n1);
 
 // API: bad auth → JSON error, before any sheet access
 ctx.__e = { parameter: { route: 'api' }, postData: { contents: JSON.stringify({ action: 'ping', initData: 'hash=00' }) } };
+const logsBefore = tab('logs').getLastRow();
 assert.equal(JSON.parse(run('doPost(__e)').body).error.code, 'AUTH_INVALID');
+assert.equal(tab('logs').getLastRow(), logsBefore, 'unauthenticated call writes nothing');
 
 // --- Mini App API with a freshly signed initData (owner 42) ---
 const sign = (fields, token) => {
@@ -150,6 +152,7 @@ const api = (action, payload) => {
   return JSON.parse(run('doPost(__e)').body);
 };
 assert.equal(api('ping').ok, true);
+assert.match(tab('logs').grid[tab('logs').getLastRow() - 1].join('|'), /INFO\|api\.ping\|ok\|\d+/, 'api call logged with ms');
 
 // 50 words via the Add screen action
 const words = Array.from({ length: 50 }, (_, i) => `단어${i} - so'z${i}`).join('\n');

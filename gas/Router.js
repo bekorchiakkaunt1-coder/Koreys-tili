@@ -12,7 +12,18 @@ function doPost(e) {
     return; // empty 200 — never return ContentService here
   }
   if (route === 'api') {
-    return json_(handleApi_(e));
+    // Always answer JSON: an uncaught error yields an HTML page without CORS headers,
+    // which the WebView reports only as a network failure.
+    const t0 = Date.now();
+    let out;
+    try {
+      out = handleApi_(e);
+    } catch (err) {
+      logError_('api', err);
+      out = { ok: false, error: { code: 'INTERNAL', message: String(err && err.message || err) } };
+    }
+    if (out.action) logApi_(out, Date.now() - t0); // set only after auth passed: no sheet writes for strangers
+    return json_(out);
   }
   return; // unknown route: empty 200, no details
 }
@@ -79,6 +90,15 @@ function safeEqual_(a, b) {
   let diff = 0;
   for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
   return diff === 0;
+}
+
+/** One INFO row per API call (action, ok/code, ms) — latency spike §12.12 and diagnostics. */
+function logApi_(out, ms) {
+  try {
+    Repo.append('logs', [{ ts: Date.now(), level: 'INFO', where: 'api.' + (out.action || ''), msg: out.ok ? 'ok' : out.error.code, ms: ms }]);
+  } catch (e) {
+    console.error('logs sheet unavailable', e);
+  }
 }
 
 /** Logs to console and the `logs` sheet (errors only — not a hot path). */

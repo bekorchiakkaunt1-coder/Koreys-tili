@@ -17,6 +17,7 @@ var T = {
   doneSub: 'Javoblar saqlandi.',
   later: function (label) { return 'Keyingi o‘rganish kartasi ' + label + 'dan keyin.'; },
   home: 'Bosh sahifa',
+  retry: 'Qayta urinish',
   addHint: 'Har qatorda bitta: 사과 - olma',
   addBtn: 'Qo‘shish',
   added: function (r) {

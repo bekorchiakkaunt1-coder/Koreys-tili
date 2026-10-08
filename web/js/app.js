@@ -44,7 +44,13 @@ var App = (function () {
   }
 
   function showError(e) {
-    el.innerHTML = '<p class="center error">' + esc(T.errors[e && e.code] || (e && e.message) || 'Xato') + '</p>';
+    el.innerHTML = '<p class="center error">' + esc(T.errors[e && e.code] || (e && e.message) || 'Xato') + '</p>' +
+      (e && e.detail ? '<p class="center muted small">' + esc((e.code || '') + ' · ' + e.detail) + '</p>' : '') +
+      '<div class="stack"><button id="retry" class="secondary">' + T.retry + '</button></div>';
+    el.querySelector('#retry').onclick = function () {
+      el.innerHTML = '<p class="muted center">' + T.loading + '</p>';
+      Queue.flush().catch(function () {}).then(loadBoot).then(route, showError);
+    };
   }
 
   return {

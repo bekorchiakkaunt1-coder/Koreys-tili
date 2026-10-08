@@ -27,13 +27,19 @@ function handleApi_(e) {
 
   const fn = API_ACTIONS[body.action];
   if (!fn) return apiError_('BAD_REQUEST', 'Unknown action: ' + body.action);
+  let out;
   try {
-    return { ok: true, data: fn(body.payload, body.reqId) };
+    out = { ok: true, data: fn(body.payload, body.reqId) };
   } catch (err) {
-    if (err && err.apiCode) return apiError_(err.apiCode, err.message);
-    logError_('api.' + body.action, err);
-    return apiError_('INTERNAL', 'Internal error');
+    if (err && err.apiCode) {
+      out = apiError_(err.apiCode, err.message);
+    } else {
+      logError_('api.' + body.action, err);
+      out = apiError_('INTERNAL', String(err && err.message || err));
+    }
   }
+  Object.defineProperty(out, 'action', { value: body.action, enumerable: false });
+  return out;
 }
 
 function apiError_(code, message) {
