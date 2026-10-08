@@ -19,8 +19,10 @@ for (const [name, engine] of [['webkit', webkit], ['chromium', chromium]]) {
       disableVerticalSwipes() {}, BackButton: { onClick() {}, show() {}, hide() {} }, onEvent() {},
     } };
   });
+  const t0 = Date.now();
   await page.goto(URL);
-  await page.waitForSelector('.error', { timeout: 30000 }).catch(() => {});
+  await page.waitForSelector('.error', { timeout: 90000 }).catch(() => {});
+  log.push('elapsed ' + (Date.now() - t0) + ' ms');
   const text = (await page.textContent('#app')).replace(/\s+/g, ' ').trim();
   console.log(`[${name}]`, text);
   if (!/Avtorizatsiya/.test(text)) process.exitCode = 1; // AUTH_INVALID shown ⇒ fetch + redirect + CORS ok
