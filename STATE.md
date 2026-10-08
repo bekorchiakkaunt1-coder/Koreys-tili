@@ -1,11 +1,11 @@
 # STATE.md — Hangang Protocol
 
-- **Last updated:** 2026-10-08 KST
-- **Current phase:** Phase 1 build (study loop MVP) — server foundation written + tested locally; not deployed
+- **Last updated:** 2026-10-09 KST
+- **Current phase:** Phase 1 build (study loop MVP) — bot live; Mini App (Home/Review/Add) built, deploying to Pages
 - **Target:** 110th TOPIK PBT, 2027-01-10, TOPIK I, 1급 floor / 2급 stretch (D-20) · T−97 days
 - **Key dates:** P1+P2 start 2026-10-12 · freeze / P3 start 2026-12-06 · no new cards 2026-12-27 · taper 2027-01-04
 - **Registration (110th):** window UNVERIFIED. January rounds open ≈ 4 weeks before (104th: 2025-12-09 → 12-15 for 2026-01-11) → expect ≈ early–mid Dec 2026. Other rounds open ≈ 10 weeks before (103rd/108th/109th). 103rd used regional staggered start days (지역별 분할 접수) → check Seoul's day. Check topik.go.kr as soon as the 110th notice appears.
-- **Deployed:** GAS project `koreys_tili` (scriptId in `.clasp.json`), prod deployment `AKfycbzX20CH…Fg` @2 (2026-10-08, clasp 3.4.1); Pages —
+- **Deployed:** GAS project `koreys_tili` (scriptId in `.clasp.json`), prod deployment `AKfycbzX20CH…Fg` @3 (2026-10-09, clasp 3.4.1); Pages via Actions from `main` (`.github/workflows/pages.yml`)
 
 ## Done
 - Master prompt reviewed; contradictions resolved in D-21 … D-25.
@@ -27,22 +27,26 @@
   - `numberToHangul(15000)` = 일만오천 → spoken-price wrapper needed (만 오천 원).
   - romanize ✓ yeouinaru / hangang / yeouido.
 
+- 2026-10-09: bot verified live by user + Hangang DB read back: 8 tabs, config seeded once, note + recog card, 2 inbox rows (text 결제, voice file_id), logs empty, no duplicate rows. setWebhook: no last_error_message, pending 0.
+- 2026-10-09: `Srs.js` adapter (FSRS-6, DR 0.90, fuzz seed = card_id, steps 1m/10m, relearn 10m, 05:00 KST boundary via +4 h offset) shared byte-identical GAS ↔ web; day-boundary vector reproduced (04:30 → S 10.000, 08:30 → 13.047). API `bootstrap`, `reviews.submit` (per-review req_id idempotent, server re-applies), `notes.add`; `Notes.js` shared by bot + Mini App. Mini App: Home (T−n, counts, latency p50/p95), Review (4 buttons + previews, batches of 5 new, learn-ahead 20 min), Add; DeviceStorage queue + localStorage mirror, flush every 10 / on hide / deactivated.
+  - `npm test` ✓ incl. sim: 50 offline reviews → 50 review_log rows, re-sent → still 50; client due == server due; quota 12/day. Headless Chromium smoke (fake Telegram + mocked API): Home → 5 reviews → done → 1 batch submitted → Add; no console errors.
+
 ## In progress
 - G1 study loop: diagnostic paper (35th TOPIK I) + Ibrat redo + vocab list in Notes.
 
 ## Next
-1. Deploy: ✓ Apps Script API on, clasp login, push (11 files; 92 KB vendor file accepted), prod deployment @1. Remaining: user runs `setup()` once in the editor (consent), sets `BOT_TOKEN`, `WEBAPP_URL` → `setWebhook()`, `setMenuButton()` → `/start` → `OWNER_ID`.
-2. Phase 1 next build steps: `Srs.js` adapter (params, 05:00 offset, fuzz seed) + `bootstrap` / `reviews.submit` (idempotent `req_id`); Mini App (Pages via Actions): Review (4 buttons + previews), Add/Notes, DeviceStorage queue; krdict import job last.
+1. User: after the Pages run is green → run `setMenuButton()` in the editor → open the Mini App from the bot menu; review the 사과 card; report latency line + anything odd.
+2. Remaining Phase 1: Notes list/search screen; krdict import job (first 500 초급 words; key → Script Property `KRDICT_KEY`); measure real latency p50/p95; 7 real days with ≥ 5 active.
 3. User: krdict Open API key application; 35th TOPIK I diagnostic (later, per user).
 
 ## Spikes pending (need the user's accounts / phone)
-- [ ] Webhook empty 200; duplicate `update_id` handled once; `getWebhookInfo` clean.
+- [x] Webhook empty 200; `getWebhookInfo` clean (2026-10-09). Duplicate `update_id` covered by sim only.
 - [ ] initData vector inside GAS; then real initData via menu button / Main Mini App.
 - [ ] text/plain POST from the Pages origin returns JSON through the redirect.
 - [x] Bundle loads in real Apps Script: 92 KB push accepted, `runAllTests()` in editor 24/24 ✓ (2026-10-09). iOS Telegram WebView part still pending.
-- [ ] Fuzz determinism GAS ↔ WebView (same bundle; Node result above).
+- [ ] Fuzz determinism GAS ↔ WebView (same bundle; Node ✓ incl. client==server sim; real devices pending).
 - [ ] iOS: `<audio>` MP3 playback and autoplay-without-gesture behaviour (D-26).
-- [ ] Voice capture: `file_id` stored and replayed.
+- [ ] Voice capture: `file_id` stored ✓ (2026-10-09); replay via sendVoice pending.
 - [ ] krdict: key, licence version + audio terms, one `search?advanced=y&level=level1` parsed with `XmlService`.
 - [ ] `LanguageApp.translate('사과','ko','uz')`.
 - [ ] Apps Script round-trip latency p50/p95 from the Mini App.

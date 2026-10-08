@@ -66,6 +66,18 @@ const Repo = (function () {
     });
   }
 
+  /** Rewrites whole rows (objects carrying `_row`), one setValues per row. */
+  function writeRows(name, objs) {
+    if (!objs.length) return;
+    const sh = sheet(name);
+    const head = headers(sh);
+    objs.forEach(function (o) {
+      sh.getRange(o._row, 1, 1, head.length).setValues([head.map(function (h) {
+        return o[h] === undefined || o[h] === null ? '' : o[h];
+      })]);
+    });
+  }
+
   /** First row whose `col` equals `value`, or null. */
   function findBy(name, col, value) {
     const vals = column(name, col);
@@ -82,7 +94,7 @@ const Repo = (function () {
     return null;
   }
 
-  return { ss: ss, sheet: sheet, readAll: readAll, column: column, append: append, update: update, findBy: findBy };
+  return { ss: ss, sheet: sheet, readAll: readAll, column: column, append: append, update: update, writeRows: writeRows, findBy: findBy };
 })();
 
 /** Short sortable id: prefix + base36 ms + 4 random chars. */

@@ -1,0 +1,49 @@
+:root {
+  --bg: var(--tg-theme-bg-color, #ffffff);
+  --fg: var(--tg-theme-text-color, #111111);
+  --muted: var(--tg-theme-hint-color, #8a8a8a);
+  --card: var(--tg-theme-secondary-bg-color, #f2f2f5);
+  --accent: var(--tg-theme-button-color, #2f80ed);
+  --accent-fg: var(--tg-theme-button-text-color, #ffffff);
+  --danger: var(--tg-theme-destructive-text-color, #e5484d);
+  --safe-top: var(--tg-content-safe-area-inset-top, 0px);
+  --safe-bottom: var(--tg-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; background: var(--bg); color: var(--fg); }
+body {
+  font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", Roboto, sans-serif;
+  min-height: 100vh;
+}
+main { max-width: 560px; margin: 0 auto; padding: calc(16px + var(--safe-top)) 16px calc(16px + var(--safe-bottom)); }
+h1 { font-size: 22px; margin: 4px 0 12px; }
+.muted { color: var(--muted); }
+.center { text-align: center; }
+.small { font-size: 13px; }
+.panel { background: var(--card); border-radius: 14px; padding: 14px 16px; margin: 12px 0; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; }
+.stats b { display: block; font-size: 24px; }
+button {
+  font: inherit; border: 0; border-radius: 12px; padding: 14px; width: 100%;
+  background: var(--accent); color: var(--accent-fg); font-weight: 600; cursor: pointer;
+}
+button.secondary { background: var(--card); color: var(--fg); }
+button:disabled { opacity: .5; }
+.stack > * + * { margin-top: 10px; }
+.card { min-height: 46vh; display: flex; flex-direction: column; justify-content: center; text-align: center; }
+.ko { font-size: 44px; font-weight: 700; line-height: 1.2; word-break: keep-all; }
+.meaning { font-size: 22px; margin-top: 18px; }
+.example { margin-top: 14px; }
+.grades { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.grades button { padding: 10px 4px; font-size: 15px; }
+.grades button small { display: block; font-weight: 400; font-size: 12px; opacity: .85; }
+.g1 { background: var(--danger); }
+.g2 { background: #d08a1e; }
+.g3 { background: #2e9d5b; }
+.g4 { background: var(--accent); }
+.progress { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); }
+textarea {
+  width: 100%; min-height: 40vh; font: inherit; padding: 12px; border-radius: 12px;
+  border: 1px solid var(--card); background: var(--card); color: var(--fg); resize: vertical;
+}
+.error { color: var(--danger); }

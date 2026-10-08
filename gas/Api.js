@@ -8,6 +8,9 @@ const API_ACTIONS = {
   ping: function (payload) {
     return { now: Date.now(), echo: payload || null };
   },
+  bootstrap: function () { return apiBootstrap_(); },
+  'reviews.submit': function (payload) { return apiReviewsSubmit_(payload); },
+  'notes.add': function (payload) { return apiNotesAdd_(payload); },
 };
 
 /** @param {Object} e @return {Object} */

@@ -17,6 +17,7 @@ function runAllTests() {
   testDedupe_(t);
   testParseAdd_(t);
   testNewCard_(t);
+  testSrs_(t);
   return t.done();
 }
 
@@ -78,4 +79,37 @@ function testNewCard_(t) {
   const row = newCardRow_('c1', 'n1', 'recog', Date.UTC(2026, 9, 12, 0, 30));
   t.eq('card: new state/due', [row.state, row.reps, row.lapses, row.due], [0, 0, 0, Date.UTC(2026, 9, 12, 0, 30)]);
   t.eq('card: no elapsed_days', 'elapsed_days' in row, false);
+}
+
+/** Oracle: §10 day-boundary vector (S=10 reviewed 01:30 KST) and ts-fsrs determinism. */
+function testSrs_(t) {
+  const H = 3600000;
+  const kst = function (d, h, m) { return Date.UTC(2026, 9, d, h, m) - 9 * H; };
+  const srs = Srs.create({ desired_retention: 0.9, day_start_hour: 5 });
+  const last = kst(12, 1, 30);
+  const row = { card_id: 'c1', note_id: 'n1', due: last + 240 * H, stability: 10, difficulty: 5, state: 2, reps: 5,
+    lapses: 0, learning_steps: 0, scheduled_days: 10, last_review: last };
+  const s = function (h, m) { return Math.round(srs.apply(row, 3, kst(12, h, m)).row.stability * 1000) / 1000; };
+  t.eq('srs: 04:30 KST same study day', s(4, 30), 10);
+  t.eq('srs: 08:30 KST new study day', s(8, 30), 13.047);
+  t.eq('srs: dayKey before/after 05:00', [srs.dayKey(kst(12, 4, 59)), srs.dayKey(kst(12, 5, 0))], ['2026-10-11', '2026-10-12']);
+  t.eq('srs: next day start', srs.nextDayStartMs(kst(12, 1, 30)), kst(12, 5, 0));
+
+  const fresh = { card_id: 'cA', note_id: 'n', due: last, stability: 0, difficulty: 0, state: 0, reps: 0, lapses: 0,
+    learning_steps: 0, scheduled_days: 0, last_review: '' };
+  const p = srs.preview(fresh, last);
+  t.eq('srs: new previews Again/Hard/Good (min)', [1, 2, 3].map(function (r) { return Math.round(p[r].ivl_ms / 60000); }), [1, 6, 10]);
+  const run = function (inst, id) {
+    let r = Object.assign({}, fresh, { card_id: id });
+    let ts = last;
+    const out = [];
+    for (let i = 0; i < 8; i++) { r = inst.apply(r, 3, ts).row; out.push(r.due); ts = r.due; }
+    return out;
+  };
+  const other = Srs.create({ desired_retention: 0.9, day_start_hour: 5 });
+  t.eq('srs: fuzz identical across instances', run(srs, 'cA'), run(other, 'cA'));
+  t.eq('srs: fuzz depends on card_id', JSON.stringify(run(srs, 'cA')) !== JSON.stringify(run(srs, 'cB')), true);
+  const a = srs.apply(fresh, 1, last);
+  t.eq('srs: log fields', [a.log.rating, a.log.state_before, a.log.offset_h, 'elapsed_days' in a.row], [1, 0, 4, false]);
+  t.eq('srs: labels', [60000, 600000, 3 * H, 48 * H, 45 * 24 * H].map(Srs.label), ['1 daq', '10 daq', '3 soat', '2 kun', '1.5 oy']);
 }

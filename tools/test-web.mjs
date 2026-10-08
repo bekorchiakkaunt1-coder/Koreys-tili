@@ -1,0 +1,54 @@
+// Mini App checks: shared files identical to GAS, all scripts parse, session ordering rules.
+import { readFileSync, readdirSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+
+const root = new URL('..', import.meta.url);
+const read = (p) => readFileSync(new URL(p, root), 'utf8');
+assert.equal(read('web/js/srs.js'), read('gas/Srs.js'), 'web/js/srs.js must be a copy of gas/Srs.js');
+assert.equal(read('web/js/vendor/korean-vendor.1.js'), read('gas/00_vendor.js'), 'vendor copies differ');
+
+const files = [
+  ...readdirSync(new URL('web/js/', root)).filter((f) => f.endsWith('.js')).map((f) => 'web/js/' + f),
+  ...readdirSync(new URL('web/js/screens/', root)).map((f) => 'web/js/screens/' + f),
+];
+for (const f of files) execFileSync(process.execPath, ['--check', new URL(f, root).pathname]);
+
+const ctx = vm.createContext({});
+for (const f of ['web/js/vendor/korean-vendor.1.js', 'web/js/srs.js', 'web/js/session.js']) vm.runInContext(read(f), ctx);
+const run = (c) => vm.runInContext(c, ctx);
+const srs = run('Srs.create({desired_retention: 0.9, day_start_hour: 5})');
+const now = Date.UTC(2026, 9, 13, 1, 0); // 10:00 KST
+const nextDay = srs.nextDayStartMs(now);
+const mk = (id, state, due) => ({ card_id: id, note_id: 'n' + id, ko: id, due, stability: state ? 5 : 0, difficulty: state ? 5 : 0,
+  state, reps: state ? 3 : 0, lapses: 0, learning_steps: 0, scheduled_days: state ? 5 : 0, last_review: state ? due - 5 * 864e5 : '' });
+const boot = {
+  next_day_start: nextDay,
+  due: [mk('r1', 2, now - 1000), mk('r2', 2, now - 500)],
+  fresh: Array.from({ length: 7 }, (_, i) => mk('f' + i, 0, now)),
+};
+ctx.boot = boot; ctx.srs = srs;
+const s = run('new Session(boot, srs, {NEW_BATCH: 5, LEARN_AHEAD_MS: 20 * 60000})');
+let t = now;
+const order = [];
+const step = (rating) => { const nx = s.next(t); if (!nx.card) return null; order.push(nx.card.card_id); s.grade(nx.card, rating, t, t - 3000, 'q' + order.length); t += 5000; return nx.card; };
+step(3); step(3);
+assert.deepEqual(order, ['r1', 'r2'], 'due reviews first');
+for (let i = 0; i < 5; i++) step(3); // introduce 5 new, each → Learning (10 min step)
+assert.deepEqual(order.slice(2), ['f0', 'f1', 'f2', 'f3', 'f4']);
+assert.equal(s.newInLearning(), 5);
+// 6th new card is held back; learn-ahead shows f0 again (due in ≤ 20 min)
+assert.equal(s.next(t).card.card_id, 'f0', 'batch of 5 → learn-ahead instead of f5');
+// Graduate all five with Good → f5 becomes available
+for (let i = 0; i < 5; i++) { t += 10 * 60000; step(3); }
+assert.equal(s.newInLearning(), 0);
+assert.equal(s.next(t).card.card_id, 'f5');
+// Again on a review card → relearning, comes back after 10 min
+const s2 = run('new Session({next_day_start: boot.next_day_start, due: [boot.due[0]], fresh: []}, srs, {NEW_BATCH: 5, LEARN_AHEAD_MS: 0})');
+const g = s2.grade(s2.next(now).card, 1, now, now - 1000, 'x');
+assert.equal(g.review.source, 'review');
+assert.equal(s2.next(now).card, null);
+assert.ok(s2.next(now).waitUntil > now);
+assert.equal(s2.next(now + 10 * 60000).card.card_id, 'r1');
+console.log('web ok: shared files identical, ' + files.length + ' scripts parse, session order/batch/learn-ahead/relearn');

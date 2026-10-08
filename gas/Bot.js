@@ -85,27 +85,10 @@ const Bot = (function () {
     if (text || msg.voice) capture(chatId, text, msg.voice ? msg.voice.file_id : '');
   }
 
-  /** Creates notes + one recognition card each (D-09); skips words already in `notes`. */
   function addNotes(add) {
-    const now = Date.now();
-    const existing = {};
-    Repo.column('notes', 'ko').forEach(function (k) { existing[String(k)] = true; });
-    const notes = [];
-    const cards = [];
-    const dup = [];
-    add.items.forEach(function (it) {
-      if (existing[it.ko]) { dup.push(it.ko); return; }
-      const noteId = newId_('n');
-      notes.push({
-        note_id: noteId, ko: it.ko, meaning_uz: it.uz, meaning_uz_status: 'own',
-        source: 'manual', verified: false, created_at: now, updated_at: now, active: true,
-      });
-      cards.push(newCardRow_(newId_('c'), noteId, 'recog', now));
-    });
-    Repo.append('notes', notes);
-    Repo.append('cards', cards);
-    const out = ['✅ ' + notes.length + ' ta so‘z qo‘shildi.'];
-    if (dup.length) out.push('⏭ Bor edi (' + dup.length + '): ' + dup.join(', '));
+    const res = Notes.addBulk(add.items, 'manual');
+    const out = ['✅ ' + res.added + ' ta so‘z qo‘shildi.'];
+    if (res.dup.length) out.push('⏭ Bor edi (' + res.dup.length + '): ' + res.dup.join(', '));
     if (add.bad.length) out.push('⚠️ Tushunilmadi (' + add.bad.length + '): ' + add.bad.join(' | '));
     return out.join('\n');
   }
@@ -134,7 +117,7 @@ const Bot = (function () {
     Telegram.answerCallbackQuery(cq.id);
   }
 
-  return { handleUpdate: handleUpdate, parseAdd: parseAdd, SITUATIONS: SITUATIONS };
+  return { handleUpdate: handleUpdate, parseAdd: parseAdd, addNotes: addNotes, SITUATIONS: SITUATIONS };
 })();
 
 /**

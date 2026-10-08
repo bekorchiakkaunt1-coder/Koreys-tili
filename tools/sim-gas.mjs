@@ -137,4 +137,66 @@ assert.equal(sent.length, n1);
 ctx.__e = { parameter: { route: 'api' }, postData: { contents: JSON.stringify({ action: 'ping', initData: 'hash=00' }) } };
 assert.equal(JSON.parse(run('doPost(__e)').body).error.code, 'AUTH_INVALID');
 
-console.log('sim ok: setup idempotent, empty 200, dedupe, add, capture, callback, voice, stranger, api auth');
+// --- Mini App API with a freshly signed initData (owner 42) ---
+const sign = (fields, token) => {
+  const dcs = Object.keys(fields).sort().map((k) => `${k}=${fields[k]}`).join('\n');
+  const secret = createHmac('sha256', 'WebAppData').update(token).digest();
+  const hash = createHmac('sha256', secret).update(dcs).digest('hex');
+  return Object.entries({ ...fields, hash }).map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+};
+const initData = sign({ auth_date: String(Math.floor(Date.now() / 1000)), user: JSON.stringify({ id: 42, first_name: 'K' }), signature: 'x' }, props.BOT_TOKEN);
+const api = (action, payload) => {
+  ctx.__e = { parameter: { route: 'api' }, postData: { contents: JSON.stringify({ action, initData, reqId: 'r', payload }) } };
+  return JSON.parse(run('doPost(__e)').body);
+};
+assert.equal(api('ping').ok, true);
+
+// 50 words via the Add screen action
+const words = Array.from({ length: 50 }, (_, i) => `단어${i} - so'z${i}`).join('\n');
+const added = api('notes.add', { text: words });
+assert.equal(added.data.added, 50);
+
+let boot = api('bootstrap');
+assert.equal(boot.ok, true);
+assert.equal(boot.data.counts.new_left, 12, 'new_per_day = 12');
+assert.equal(boot.data.fresh.length, 12);
+assert.equal(boot.data.fresh[0].ko, '사과');
+
+// Grade 50 reviews "offline" (client-side Srs), submit, then re-send the same batch
+const srs = run('Srs.create({desired_retention: 0.9, day_start_hour: 5})');
+const t0 = Date.now() - 60 * 60000;
+const reviews = [];
+const local = {};
+boot.data.fresh.forEach((c) => { local[c.card_id] = c; });
+let ts = t0;
+for (let i = 0; reviews.length < 50; i++) {
+  const c = boot.data.fresh[i % 12];
+  const rating = [3, 1, 3, 4, 2][i % 5];
+  ts += 20000;
+  local[c.card_id] = srs.apply(local[c.card_id], rating, ts).row;
+  reviews.push({ req_id: 'q' + i, card_id: c.card_id, rating, ts, duration_ms: 6000 });
+}
+const r1 = api('reviews.submit', { reviews });
+assert.equal(r1.data.accepted, 50, JSON.stringify(r1));
+assert.equal(tab('review_log').getLastRow() - 1, 50);
+const r2 = api('reviews.submit', { reviews });
+assert.equal(r2.data.accepted, 0);
+assert.equal(r2.data.duplicates, 50);
+assert.equal(tab('review_log').getLastRow() - 1, 50, 're-sent batch → still 50 rows');
+// Server state equals the client's local grading (same bundle, same fuzz seed)
+r1.data.cards.forEach((c) => assert.equal(c.due, local[c.card_id].due, 'client/server due match'));
+
+boot = api('bootstrap');
+assert.equal(boot.data.counts.new_today, 12);
+assert.equal(boot.data.counts.new_left, 0, 'quota used up today');
+assert.equal(boot.data.counts.reviews_today, 50);
+const stats = tab('daily_stats').grid[1];
+assert.equal(stats[1], 50);
+assert.equal(stats[2], 12);
+
+// Bad input
+assert.equal(api('reviews.submit', { reviews: [{ req_id: 'z', card_id: 'nope', rating: 3, ts: Date.now() }] }).data.rejected[0].reason, 'unknown card');
+assert.equal(api('nope').error.code, 'BAD_REQUEST');
+assert.equal(api('notes.add', { text: 'salom' }).error.code, 'BAD_REQUEST');
+
+console.log('sim ok: setup idempotent, empty 200, dedupe, add, capture, callback, voice, stranger, api auth, bootstrap quota, 50 offline reviews idempotent, client=server');

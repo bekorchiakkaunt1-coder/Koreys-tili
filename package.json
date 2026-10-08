@@ -5,7 +5,7 @@
   "scripts": {
     "build:vendor": "node tools/build-vendor.mjs",
     "check:vendor": "node tools/vendor-check.mjs",
-    "test": "node tools/test-gas.mjs && node tools/sim-gas.mjs && node tools/vendor-check.mjs",
+    "test": "node tools/test-gas.mjs && node tools/sim-gas.mjs && node tools/test-web.mjs && node tools/vendor-check.mjs",
     "sim": "node tools/sim-gas.mjs"
   },
   "devDependencies": {
