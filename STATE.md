@@ -39,7 +39,7 @@
 - [ ] Webhook empty 200; duplicate `update_id` handled once; `getWebhookInfo` clean.
 - [ ] initData vector inside GAS; then real initData via menu button / Main Mini App.
 - [ ] text/plain POST from the Pages origin returns JSON through the redirect.
-- [x] Bundle loads in real Apps Script: 92 KB push accepted, `runAllTests()` in editor 24/24 ✓ (2026-10-09). WebView part still pending. and in the iOS Telegram WebView; vectors match.
+- [x] Bundle loads in real Apps Script: 92 KB push accepted, `runAllTests()` in editor 24/24 ✓ (2026-10-09). iOS Telegram WebView part still pending.
 - [ ] Fuzz determinism GAS ↔ WebView (same bundle; Node result above).
 - [ ] iOS: `<audio>` MP3 playback and autoplay-without-gesture behaviour (D-26).
 - [ ] Voice capture: `file_id` stored and replayed.
