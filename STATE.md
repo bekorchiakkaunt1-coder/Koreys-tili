@@ -5,7 +5,7 @@
 - **Target:** 110th TOPIK PBT, 2027-01-10, TOPIK I, 1급 floor / 2급 stretch (D-20) · T−97 days
 - **Key dates:** P1+P2 start 2026-10-12 · freeze / P3 start 2026-12-06 · no new cards 2026-12-27 · taper 2027-01-04
 - **Registration (110th):** window UNVERIFIED. January rounds open ≈ 4 weeks before (104th: 2025-12-09 → 12-15 for 2026-01-11) → expect ≈ early–mid Dec 2026. Other rounds open ≈ 10 weeks before (103rd/108th/109th). 103rd used regional staggered start days (지역별 분할 접수) → check Seoul's day. Check topik.go.kr as soon as the 110th notice appears.
-- **Deployed:** GAS project `koreys_tili` (scriptId in `.clasp.json`), prod deployment `AKfycbzX20CH…Fg` @1 (2026-10-08, clasp 3.4.1); Pages —
+- **Deployed:** GAS project `koreys_tili` (scriptId in `.clasp.json`), prod deployment `AKfycbzX20CH…Fg` @2 (2026-10-08, clasp 3.4.1); Pages —
 
 ## Done
 - Master prompt reviewed; contradictions resolved in D-21 … D-25.
@@ -39,7 +39,7 @@
 - [ ] Webhook empty 200; duplicate `update_id` handled once; `getWebhookInfo` clean.
 - [ ] initData vector inside GAS; then real initData via menu button / Main Mini App.
 - [ ] text/plain POST from the Pages origin returns JSON through the redirect.
-- [ ] Bundle loads in real Apps Script (file size: 92 KB push accepted ✓; global scope → `runAllTests()` in editor) and in the iOS Telegram WebView; vectors match.
+- [x] Bundle loads in real Apps Script: 92 KB push accepted, `runAllTests()` in editor 24/24 ✓ (2026-10-09). WebView part still pending. and in the iOS Telegram WebView; vectors match.
 - [ ] Fuzz determinism GAS ↔ WebView (same bundle; Node result above).
 - [ ] iOS: `<audio>` MP3 playback and autoplay-without-gesture behaviour (D-26).
 - [ ] Voice capture: `file_id` stored and replayed.

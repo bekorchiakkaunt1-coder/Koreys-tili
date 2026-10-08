@@ -1,7 +1,7 @@
 /**
  * One-time / idempotent setup, run from the Apps Script editor:
  *   1. setup()          → spreadsheet + Phase-1 tabs (trimmed), config defaults, WEBHOOK_KEY
- *   2. setWebhook()     → needs BOT_TOKEN and WEBAPP_URL (after the first deployment)
+ *   2. setWebhook()     → needs BOT_TOKEN (WEBAPP_URL defaults to the prod deployment)
  *   3. setMenuButton()  → Mini App menu button (PAGES_URL)
  *   webhookInfo()       → prints getWebhookInfo (spike: no last_error_message)
  */
@@ -60,7 +60,7 @@ function setup() {
   seedConfig_();
   CacheService.getScriptCache().remove('config');
   console.log('setup ok · spreadsheet ' + ss.getUrl());
-  console.log('Missing properties: ' + [PROP.BOT_TOKEN, PROP.OWNER_ID, PROP.WEBAPP_URL].filter(function (k) { return !props.getProperty(k); }).join(', '));
+  console.log('Missing properties: ' + [PROP.BOT_TOKEN, PROP.OWNER_ID].filter(function (k) { return !props.getProperty(k); }).join(', '));
 }
 
 /** Creates or extends a tab; header row frozen; text columns '@'; grid trimmed (empty cells count, §12.8). */
@@ -99,7 +99,10 @@ function seedConfig_() {
 
 /** §12.3: max_connections=1, only message + callback_query; drops the backlog. */
 function setWebhook() {
-  const url = requireProp_(PROP.WEBAPP_URL) + '?route=tg&key=' + requireProp_(PROP.WEBHOOK_KEY);
+  requireProp_(PROP.BOT_TOKEN);
+  const key = prop_(PROP.WEBHOOK_KEY);
+  if (!key) throw new Error('WEBHOOK_KEY missing: run setup() first');
+  const url = (prop_(PROP.WEBAPP_URL) || DEFAULT_WEBAPP_URL) + '?route=tg&key=' + key;
   const res = Telegram.call('setWebhook', {
     url: url,
     max_connections: 1,

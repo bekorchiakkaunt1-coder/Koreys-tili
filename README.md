@@ -16,5 +16,5 @@ npm test               # GAS unit suites + webhook simulation + vendor vectors
 npm run build:vendor   # only when a pinned library changes
 ```
 
-Apps Script editor: `setup()` → set Script Properties `BOT_TOKEN`, `WEBAPP_URL` → `setWebhook()` → `setMenuButton()`;
+Apps Script editor: `setup()` → set Script Property `BOT_TOKEN` → `setWebhook()` → `setMenuButton()`;
 `/start` in the bot prints your id → `OWNER_ID`. `runAllTests()` runs the same suites as `npm test`.
