@@ -60,4 +60,16 @@ assert.equal(ctx.snap.counts.due, 1);
 const s3 = run('new Session(snap, srs, {NEW_BATCH: 5, LEARN_AHEAD_MS: 0}, ' + now + ')');
 assert.equal(s3.next(now).card, null, 'relearning card not shown before its due');
 assert.equal(s3.next(now + 10 * 60000).card.card_id, 'r1');
-console.log('web ok: shared files identical, ' + files.length + ' scripts parse, session order/batch/learn-ahead/relearn');
+// Lug'at search + status
+for (const f of ['web/js/i18n.js', 'web/js/screens/notes.js']) vm.runInContext(read(f), ctx);
+const row = (ko, uz, en, state, due, active = true) => ['n', ko, uz, en, '', '명사', 'krdict', active, state, due];
+const M = (r, q) => run('NotesSearch').match(r, q);
+assert.ok(M(row('사과', 'olma', 'apple'), 'ㅅㄱ'), 'choseong');
+assert.ok(!M(row('사과', 'olma', 'apple'), 'ㄱㄷ'));
+assert.ok(M(row('사과', 'olma', 'apple'), 'APP'), 'English, case-insensitive');
+assert.ok(M(row('사과', 'olma', 'apple'), 'olm') && M(row('사과', '', 'apple'), '사'));
+assert.ok(M(row('가다', '', 'go'), '  '), 'empty query matches all');
+const S = (r) => run('NotesSearch').status(r, now);
+assert.deepEqual([S(row('a', '', '', 0, now)), S(row('a', '', '', 1, now)), S(row('a', '', '', 2, now + 3 * 864e5)), S(row('a', '', '', 2, now, false))],
+  ['hali o‘rganilmagan', 'o‘rganilmoqda', '3 kundan keyin', 'o‘chirilgan']);
+console.log('web ok: shared files identical, ' + files.length + ' scripts parse, session order/batch/learn-ahead/relearn, lug‘at search/status');

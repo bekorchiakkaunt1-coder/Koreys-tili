@@ -11,6 +11,8 @@ const API_ACTIONS = {
   bootstrap: function () { return apiBootstrap_(); },
   'reviews.submit': function (payload) { return apiReviewsSubmit_(payload); },
   'notes.add': function (payload) { return apiNotesAdd_(payload); },
+  'notes.list': function () { return apiNotesList_(); },
+  'notes.update': function (payload) { return apiNotesUpdate_(payload); },
 };
 
 /** @param {Object} e @return {Object} */

@@ -7,6 +7,7 @@ var App = (function () {
   var cleanup = null;
   var current = null;
   var refreshing = null;
+  var SCREENS = { home: HomeScreen, review: ReviewScreen, add: AddScreen, notes: NotesScreen, help: HelpScreen };
 
   function init() {
     if (!tg || !tg.initData) { el.innerHTML = '<p class="center muted">' + T.noTelegram + '</p>'; return; }
@@ -78,12 +79,12 @@ var App = (function () {
 
   function route() {
     var name = (location.hash || '#home').slice(1);
-    if (!{ home: 1, review: 1, add: 1 }[name]) name = 'home';
+    if (!SCREENS[name]) name = 'home';
     if (cleanup) { cleanup(); cleanup = null; }
     current = name;
     if (name !== 'home') tg.BackButton.show(); else tg.BackButton.hide();
     if (!state.boot) { el.innerHTML = '<p class="muted center">' + T.loading + '</p>'; return; }
-    var screen = { home: HomeScreen, review: ReviewScreen, add: AddScreen }[name];
+    var screen = SCREENS[name];
     cleanup = screen.render(el, state) || null;
   }
 
@@ -97,8 +98,22 @@ var App = (function () {
     };
   }
 
+  /** Applies a Lug‘at edit to the cached boot so the next card shows it at once. */
+  function patchNote(noteId, fields) {
+    if (!state.boot) return;
+    var apply = function (list) {
+      return list.filter(function (c) { return c.note_id !== noteId || fields.active !== false; })
+        .map(function (c) { return c.note_id === noteId ? Object.assign({}, c, { meaning_uz: fields.meaning_uz }) : c; });
+    };
+    var boot = Object.assign({}, state.boot, { due: apply(state.boot.due), fresh: apply(state.boot.fresh) });
+    boot.counts = Object.assign({}, boot.counts, { due: boot.due.length, new_left: boot.fresh.length });
+    setBoot(boot);
+    Store.save(boot);
+  }
+
   return {
     init: init,
+    patchNote: patchNote,
     go: function (name) {
       if (location.hash === '#' + name) route(); else location.hash = name;
       if (name === 'home') refresh().catch(function () {});

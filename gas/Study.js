@@ -187,3 +187,42 @@ function withLock_(fn) {
     lock.releaseLock();
   }
 }
+
+/**
+ * All notes in a compact form for the Mini App "Lug‘at" screen (searched client-side, offline).
+ * Row: [note_id, ko, meaning_uz, gloss_en, gloss_ru, pos, source, active, card_state, card_due].
+ */
+function apiNotesList_() {
+  const cards = {};
+  Repo.readAll('cards').forEach(function (c) {
+    if (c.kind === 'recog' || !cards[c.note_id]) cards[c.note_id] = c;
+  });
+  const rows = Repo.readAll('notes').map(function (n) {
+    const c = cards[n.note_id];
+    const active = !(n.active === false || n.active === 'FALSE');
+    return [n.note_id, String(n.ko), String(n.meaning_uz || ''), tidyGloss_(n.gloss_en), tidyGloss_(n.gloss_ru),
+      String(n.pos || ''), String(n.source || ''), active, c ? Number(c.state) || 0 : null, c ? Number(c.due) || 0 : null];
+  });
+  const rank = function (r) { return r[6] === 'krdict' ? 1 : 0; };
+  rows.sort(function (a, b) { return rank(a) - rank(b); });
+  return { rows: rows };
+}
+
+/** Edits my Uzbek meaning and/or (de)activates a note. payload: {note_id, meaning_uz?, active?} */
+function apiNotesUpdate_(payload) {
+  const id = payload && payload.note_id;
+  if (!id) throw apiErr_('BAD_REQUEST', 'note_id required');
+  return withLock_(function () {
+    const note = Repo.findBy('notes', 'note_id', id);
+    if (!note) throw apiErr_('BAD_REQUEST', 'Unknown note');
+    const fields = { updated_at: Date.now() };
+    if (typeof payload.meaning_uz === 'string') {
+      const m = payload.meaning_uz.normalize('NFC').replace(/\s+/g, ' ').trim().slice(0, 200);
+      fields.meaning_uz = m;
+      fields.meaning_uz_status = m ? 'own' : 'none';
+    }
+    if (typeof payload.active === 'boolean') fields.active = payload.active;
+    Repo.writeRows('notes', [Object.assign(note, fields)]);
+    return { note_id: id, meaning_uz: note.meaning_uz, active: note.active === true || note.active === 'TRUE' };
+  });
+}

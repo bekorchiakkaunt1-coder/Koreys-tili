@@ -254,4 +254,21 @@ const fresh = api('bootstrap').data.fresh.map((c) => c.ko);
 assert.deepEqual(fresh.slice(-2), ['눈', '국물'], 'krdict words come last');
 assert.ok(fresh[0].startsWith('단어'), 'own words first');
 
-console.log('sim ok: setup idempotent, empty 200, dedupe, add, capture, callback, voice, stranger, api auth, bootstrap quota, 50 offline reviews idempotent, client=server, krdict import (error path, enrich, dedupe, order, no key in logs)');
+// --- Lug'at (notes.list / notes.update) ---
+const list = api('notes.list').data.rows;
+assert.equal(list.length, tab('notes').getLastRow() - 1);
+assert.equal(list[list.length - 1][6], 'krdict', 'krdict rows last');
+const appleRow = list.find((r) => r[1] === '사과');
+assert.deepEqual([appleRow[2], appleRow[3], appleRow[7]], ['olma', 'apple', true]);
+const snowRow = list.find((r) => r[1] === '눈');
+assert.equal(snowRow[8], 0, 'card state New');
+let upd = api('notes.update', { note_id: snowRow[0], meaning_uz: '  ko‘z   / qor ' });
+assert.deepEqual([upd.ok, upd.data.meaning_uz], [true, 'ko‘z / qor']);
+upd = api('notes.update', { note_id: snowRow[0], active: false });
+assert.equal(upd.data.active, false);
+assert.ok(!api('bootstrap').data.fresh.some((c) => c.ko === '눈'), 'inactive note leaves the study queue');
+api('notes.update', { note_id: snowRow[0], active: true });
+assert.ok(api('bootstrap').data.fresh.some((c) => c.ko === '눈' && c.meaning_uz === 'ko‘z / qor'), 'back, with my meaning');
+assert.equal(api('notes.update', { note_id: 'nope', meaning_uz: 'x' }).error.code, 'BAD_REQUEST');
+
+console.log('sim ok: setup idempotent, empty 200, dedupe, add, capture, callback, voice, stranger, api auth, bootstrap quota, 50 offline reviews idempotent, client=server, krdict import (error path, enrich, dedupe, order, no key in logs), notes list/update');

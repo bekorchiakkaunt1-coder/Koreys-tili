@@ -15,13 +15,17 @@ var HomeScreen = {
       '</div>' +
       '<div class="stack">' +
         '<button id="go-review"' + (total ? '' : ' disabled') + '>' + T.start(total) + '</button>' +
-        '<button id="go-add" class="secondary">' + T.add + '</button>' +
+        '<div class="row2"><button id="go-notes" class="secondary">' + T.notes.title + '</button>' +
+        '<button id="go-add" class="secondary">' + T.add + '</button></div>' +
+        '<button id="go-help" class="secondary">' + T.help.title + '</button>' +
       '</div>' +
       (Queue.size() ? '<p class="small muted center">' + T.pending(Queue.size()) + '</p>' : '') +
       (state.syncing ? '<p class="small muted center">' + T.syncing + '</p>' : '') +
       (state.syncError ? '<p class="small muted center">' + T.offline + '</p>' : '') +
-      (lat ? '<p class="small muted center">' + T.latency(lat) + '</p>' : '');
+      (lat ? '<details class="small muted"><summary>' + T.tech + '</summary>' + T.latency(lat) + '</details>' : '');
     el.querySelector('#go-review').onclick = function () { App.go('review'); };
+    el.querySelector('#go-notes').onclick = function () { App.go('notes'); };
     el.querySelector('#go-add').onclick = function () { App.go('add'); };
+    el.querySelector('#go-help').onclick = function () { App.go('help'); };
   },
 };

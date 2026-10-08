@@ -47,3 +47,16 @@ textarea {
   border: 1px solid var(--card); background: var(--card); color: var(--fg); resize: vertical;
 }
 .error { color: var(--danger); }
+
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+input[type=search], input[type=text] {
+  width: 100%; font: inherit; padding: 12px; border-radius: 12px; border: 0;
+  background: var(--card); color: var(--fg); -webkit-appearance: none;
+}
+.note { padding: 12px 4px; border-bottom: 1px solid var(--card); cursor: pointer; }
+.note.off { opacity: .5; }
+.note-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.note-head b { font-size: 20px; }
+.note-edit { margin-top: 10px; cursor: default; }
+details { margin-top: 16px; text-align: center; }
+details summary { cursor: pointer; }
