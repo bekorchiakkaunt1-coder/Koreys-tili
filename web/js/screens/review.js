@@ -41,6 +41,7 @@ var ReviewScreen = {
           b.onclick = function () {
             var res = session.grade(card, Number(b.getAttribute('data-r')), Date.now(), shownAt, Api.uuid());
             Queue.push(res.review);
+            App.saveSession();
             haptic();
             show();
           };

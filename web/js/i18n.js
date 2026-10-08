@@ -9,7 +9,11 @@ var T = {
   start: function (n) { return n ? 'Boshlash (' + n + ')' : 'Bugunga karta yo‘q'; },
   add: 'So‘z qo‘shish',
   pending: function (n) { return n + ' ta javob hali yuborilmagan'; },
-  latency: function (p50, p95, n) { return 'API: p50 ' + p50 + ' ms · p95 ' + p95 + ' ms (n=' + n + ')'; },
+  latency: function (l) {
+    return 'API: p50 ' + l.p50 + ' ms · p95 ' + l.p95 + ' ms' + (l.server ? ' (server p50 ' + l.server + ' ms)' : '') + ' · n=' + l.n;
+  },
+  syncing: '⟳ Yangilanmoqda…',
+  offline: 'Server bilan bog‘lanib bo‘lmadi — oxirgi saqlangan holat ko‘rsatilmoqda.',
   show: 'Javobni ko‘rsatish',
   grades: ['Yana', 'Qiyin', 'Yaxshi', 'Oson'],
   left: function (d, n) { return 'Takror: ' + d + ' · Yangi: ' + n; },

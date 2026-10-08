@@ -56,7 +56,9 @@ function getConfig_() {
   if (hit) return JSON.parse(hit);
   const cfg = Object.assign({}, CONFIG_DEFAULTS);
   Repo.readAll('config').forEach(function (r) {
-    if (r.key) cfg[r.key] = r.value;
+    if (!r.key) return;
+    // Sheets turns '2027-01-10' into a Date; keep config values as plain strings/numbers.
+    cfg[r.key] = Object.prototype.toString.call(r.value) === '[object Date]' ? Utilities.formatDate(r.value, 'Asia/Seoul', 'yyyy-MM-dd') : r.value;
   });
   cache.put('config', JSON.stringify(cfg), 600);
   return cfg;

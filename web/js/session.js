@@ -1,12 +1,14 @@
 // Review session ordering (§6.2), pure JS (tested in Node by tools/test-web.mjs):
 // due learning cards → due reviews → new cards (≤ NEW_BATCH in learning at once) → learn-ahead.
-function Session(boot, srs, opts) {
+function Session(boot, srs, opts, now) {
+  var t = now === undefined ? Date.now() : now;
   this.srs = srs;
   this.opts = opts;
   this.nextDay = boot.next_day_start;
-  this.due = boot.due.slice();
+  // Cards due later today (learning steps) wait in `learning` until their time.
+  this.due = boot.due.filter(function (c) { return c.due <= t; });
+  this.learning = boot.due.filter(function (c) { return c.due > t; });
   this.fresh = boot.fresh.slice();
-  this.learning = [];
   this.introduced = {};
   this.done = 0;
 }
@@ -53,4 +55,22 @@ Session.prototype.grade = function (card, rating, now, shownAt, reqId) {
 
 Session.prototype.left = function () {
   return { due: this.due.length + this.learning.length, fresh: this.fresh.length };
+};
+
+/**
+ * Local truth after grading = last server boot + queued reviews. Cached so the next open
+ * (or the way back to Home) renders instantly without waiting for Apps Script.
+ */
+Session.prototype.snapshot = function (boot) {
+  var due = this.learning.concat(this.due).sort(function (a, b) { return a.due - b.due; });
+  var counts = {};
+  for (var k in boot.counts) counts[k] = boot.counts[k];
+  counts.due = due.length;
+  counts.new_left = this.fresh.length;
+  var out = {};
+  for (var b in boot) out[b] = boot[b];
+  out.due = due;
+  out.fresh = this.fresh.slice();
+  out.counts = counts;
+  return out;
 };

@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 const toBuf = (x) => (typeof x === 'string' ? Buffer.from(x, 'utf8') : Buffer.from(x.map((b) => b & 0xff)));
 const toSigned = (buf) => Array.from(buf, (b) => (b > 127 ? b - 256 : b));
 
+let sheetCalls = 0;
 class FakeSheet {
   constructor(name) { this.name = name; this.grid = Array.from({ length: 1000 }, () => Array(26).fill('')); this.frozen = 0; }
   getName() { return this.name; }
@@ -21,11 +22,12 @@ class FakeSheet {
   insertColumnsAfter(_, n) { this.grid.forEach((r) => r.push(...Array(n).fill(''))); }
   deleteRows(start, n) { this.grid.splice(start - 1, n); }
   deleteColumns(start, n) { this.grid.forEach((r) => r.splice(start - 1, n)); }
+  getDataRange() { return this.getRange(1, 1, Math.max(1, this.getLastRow()), Math.max(1, this.getLastColumn())); }
   getRange(r, c, nr = 1, nc = 1) {
     const sh = this;
     const ensure = () => { while (sh.grid.length < r - 1 + nr) sh.grid.push(Array(sh.getMaxColumns()).fill('')); };
     const range = {
-      getValues: () => Array.from({ length: nr }, (_, i) => Array.from({ length: nc }, (_, j) => (sh.grid[r - 1 + i] || [])[c - 1 + j] ?? '')),
+      getValues: () => ++sheetCalls && Array.from({ length: nr }, (_, i) => Array.from({ length: nc }, (_, j) => (sh.grid[r - 1 + i] || [])[c - 1 + j] ?? '')),
       setValues: (vals) => { ensure(); vals.forEach((row, i) => row.forEach((v, j) => { sh.grid[r - 1 + i][c - 1 + j] = v; })); return range; },
       setValue: (v) => { ensure(); sh.grid[r - 1][c - 1] = v; return range; },
       setFontWeight: () => range,
@@ -54,6 +56,7 @@ const globals = {
     computeHmacSha256Signature: (v, k) => toSigned(createHmac('sha256', toBuf(k)).update(toBuf(v)).digest()),
     newBlob: (s) => ({ getBytes: () => toSigned(Buffer.from(s, 'utf8')) }),
     getUuid: () => randomUUID(),
+    formatDate: (d, tz, fmt) => new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d),
   },
   PropertiesService: { getScriptProperties: () => ({ getProperty: (k) => props[k] ?? null, setProperty: (k, v) => { props[k] = String(v); } }) },
   LockService: { getScriptLock: () => ({ waitLock() {}, releaseLock() {} }) },
@@ -151,16 +154,25 @@ const api = (action, payload) => {
   ctx.__e = { parameter: { route: 'api' }, postData: { contents: JSON.stringify({ action, initData, reqId: 'r', payload }) } };
   return JSON.parse(run('doPost(__e)').body);
 };
-assert.equal(api('ping').ok, true);
-assert.match(tab('logs').grid[tab('logs').getLastRow() - 1].join('|'), /INFO\|api\.ping\|ok\|\d+/, 'api call logged with ms');
+const pong = (() => { ctx.__e = { parameter: { route: 'api' }, postData: { contents: JSON.stringify({ action: 'ping', initData }) } }; return JSON.parse(run('doPost(__e)').body); })();
+assert.equal(pong.ok, true);
+assert.equal(typeof pong.ms, 'number', 'server time returned');
+assert.equal(tab('logs').getLastRow(), 1, 'no sheet write on the response path');
 
 // 50 words via the Add screen action
 const words = Array.from({ length: 50 }, (_, i) => `단어${i} - so'z${i}`).join('\n');
 const added = api('notes.add', { text: words });
 assert.equal(added.data.added, 50);
 
+// Sheets stores '2027-01-10' as a Date; config must hand it back as a plain date string.
+const cfgRow = tab('config').grid.findIndex((r) => r[0] === 'exam_date');
+tab('config').grid[cfgRow][1] = new Date(Date.UTC(2027, 0, 9, 15)); // 2027-01-10 00:00 KST
+cache.config && delete cache.config;
+sheetCalls = 0;
 let boot = api('bootstrap');
 assert.equal(boot.ok, true);
+assert.equal(boot.data.cfg.exam_date, '2027-01-10');
+assert.ok(sheetCalls <= 6, 'bootstrap reads ≤ 6 ranges, got ' + sheetCalls);
 assert.equal(boot.data.counts.new_left, 12, 'new_per_day = 12');
 assert.equal(boot.data.fresh.length, 12);
 assert.equal(boot.data.fresh[0].ko, '사과');

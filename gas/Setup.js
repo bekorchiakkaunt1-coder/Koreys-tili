@@ -6,7 +6,7 @@
  *   webhookInfo()       → prints getWebhookInfo (spike: no last_error_message)
  */
 const SCHEMA = {
-  config: { cols: ['key', 'value'], text: ['key'] },
+  config: { cols: ['key', 'value'], text: ['key', 'value'] },
   notes: {
     cols: ['note_id', 'ko', 'meaning_uz', 'meaning_uz_status', 'gloss_en', 'gloss_ru', 'pos', 'hanja', 'pron_dict',
       'krdict_code', 'krdict_grade', 'std_grade', 'topik_band', 'themes', 'tags', 'source', 'verified', 'example_ko',

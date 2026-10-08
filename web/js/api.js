@@ -11,7 +11,7 @@ var Api = (function () {
         return res.json().catch(function () { throw apiError('NETWORK', 'HTTP ' + res.status + ': not JSON'); });
       }, function (err) { throw apiError('NETWORK', String(err && err.message || err)); })
       .then(function (json) {
-        recordLatency(action, Math.round(performance.now() - t0));
+        recordLatency(Math.round(performance.now() - t0), json.ms);
         if (!json.ok) throw apiError(json.error && json.error.code, json.error && json.error.message);
         return json.data;
       });
@@ -24,21 +24,24 @@ var Api = (function () {
     return e;
   }
 
-  function recordLatency(action, ms) {
+  /** Keeps the last 50 [round trip ms, server ms] pairs (spike §12.12: p50/p95). */
+  function recordLatency(ms, serverMs) {
     try {
       var arr = JSON.parse(localStorage.getItem(LAT_KEY) || '[]');
-      arr.push(ms);
+      arr.push([ms, typeof serverMs === 'number' ? serverMs : null]);
       localStorage.setItem(LAT_KEY, JSON.stringify(arr.slice(-50)));
     } catch (e) { /* storage unavailable */ }
   }
 
-  /** @return {?{p50:number, p95:number, n:number}} */
+  /** @return {?{p50:number, p95:number, server:?number, n:number}} */
   function latency() {
     try {
-      var arr = JSON.parse(localStorage.getItem(LAT_KEY) || '[]').slice().sort(function (a, b) { return a - b; });
+      var arr = JSON.parse(localStorage.getItem(LAT_KEY) || '[]').map(function (x) { return Array.isArray(x) ? x : [x, null]; });
       if (!arr.length) return null;
-      var q = function (p) { return arr[Math.min(arr.length - 1, Math.floor(p * arr.length))]; };
-      return { p50: q(0.5), p95: q(0.95), n: arr.length };
+      var q = function (xs, p) { xs = xs.slice().sort(function (a, b) { return a - b; }); return xs[Math.min(xs.length - 1, Math.floor(p * xs.length))]; };
+      var rt = arr.map(function (x) { return x[0]; });
+      var sv = arr.map(function (x) { return x[1]; }).filter(function (x) { return x !== null; });
+      return { p50: q(rt, 0.5), p95: q(rt, 0.95), server: sv.length ? q(sv, 0.5) : null, n: arr.length };
     } catch (e) { return null; }
   }
 

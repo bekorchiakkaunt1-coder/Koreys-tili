@@ -32,7 +32,7 @@ const boot = {
   fresh: Array.from({ length: 7 }, (_, i) => mk('f' + i, 0, now)),
 };
 ctx.boot = boot; ctx.srs = srs;
-const s = run('new Session(boot, srs, {NEW_BATCH: 5, LEARN_AHEAD_MS: 20 * 60000})');
+const s = run('new Session(boot, srs, {NEW_BATCH: 5, LEARN_AHEAD_MS: 20 * 60000}, ' + now + ')');
 let t = now;
 const order = [];
 const step = (rating) => { const nx = s.next(t); if (!nx.card) return null; order.push(nx.card.card_id); s.grade(nx.card, rating, t, t - 3000, 'q' + order.length); t += 5000; return nx.card; };
@@ -48,10 +48,16 @@ for (let i = 0; i < 5; i++) { t += 10 * 60000; step(3); }
 assert.equal(s.newInLearning(), 0);
 assert.equal(s.next(t).card.card_id, 'f5');
 // Again on a review card → relearning, comes back after 10 min
-const s2 = run('new Session({next_day_start: boot.next_day_start, due: [boot.due[0]], fresh: []}, srs, {NEW_BATCH: 5, LEARN_AHEAD_MS: 0})');
+const s2 = run('new Session({next_day_start: boot.next_day_start, due: [boot.due[0]], fresh: []}, srs, {NEW_BATCH: 5, LEARN_AHEAD_MS: 0}, ' + now + ')');
 const g = s2.grade(s2.next(now).card, 1, now, now - 1000, 'x');
 assert.equal(g.review.source, 'review');
 assert.equal(s2.next(now).card, null);
 assert.ok(s2.next(now).waitUntil > now);
 assert.equal(s2.next(now + 10 * 60000).card.card_id, 'r1');
+// Snapshot → new Session (cache reload) keeps learning cards time-gated
+ctx.snap = s2.snapshot({ ...boot, due: [boot.due[0]], fresh: [], counts: { due: 1, new_left: 0, inbox_new: 0 } });
+assert.equal(ctx.snap.counts.due, 1);
+const s3 = run('new Session(snap, srs, {NEW_BATCH: 5, LEARN_AHEAD_MS: 0}, ' + now + ')');
+assert.equal(s3.next(now).card, null, 'relearning card not shown before its due');
+assert.equal(s3.next(now + 10 * 60000).card.card_id, 'r1');
 console.log('web ok: shared files identical, ' + files.length + ' scripts parse, session order/batch/learn-ahead/relearn');

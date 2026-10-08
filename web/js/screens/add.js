@@ -16,7 +16,7 @@ var AddScreen = {
         out.className = 'small';
         out.textContent = T.added(r);
         el.querySelector('#add-text').value = '';
-        App.invalidate();
+        App.refresh().catch(function () {});
       }, function (e) {
         out.className = 'small error';
         out.textContent = T.errors[e.code] || e.message;
